@@ -1,12 +1,13 @@
-def fun(a,b,c):
-    x = 0
-    y = 0
-    z = 0
-    if (a):
+def fun(a: int,b: int,c: int):
+    x: int = 0
+    y: int = 0
+    z: int = 0
+    if (a >= 0):
         x = -2
     
-    if(b < 5):
-        if (~a & c):
-            y = 1
+    if (b < 5):
+        if (a <= 0 ):
+            if( c < 7):
+                y = 1
         z = 2
-    assert(x + y + z != 3)
+    return x + y + z
