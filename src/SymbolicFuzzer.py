@@ -8,6 +8,8 @@ from graphviz import Source, Graph
 from fuzzingbook.Fuzzer import Fuzzer
 from contextlib import contextmanager
 
+from HelperFunc import used_vars, to_src, define_symbolic_vars, checkpoint
+from HelperFunc import MAX_DEPTH, MAX_TRIES, MAX_ITER
 
 class SimpleSymbolicFuzzer(Fuzzer):
     def __init__(self, fn, **kwargs):
@@ -107,22 +109,22 @@ class SimpleSymbolicFuzzer(Fuzzer):
 
 #---------------------------------------------------------------------------------
 # test class SimpleSympolicFuzzer
-# def fun(a: int,b: int,c: int):
-#     x: int = 0
-#     y: int = 0
-#     z: int = 0
-#     if (a >= 0):
-#         return -2
+def fun(a: int,b: int,c: int):
+    x: int = 0
+    y: int = 0
+    z: int = 0
+    if (a >= 0):
+        return -2
     
-#     if (b < 5):
-#         if (a <= 0):
-#             if( c < 7):
-#                 return 1
-#         return 2
-#     return x + y + z
+    if (b < 5):
+        if (a <= 0):
+            if( c < 7):
+                return 1
+        return 2
+    return x + y + z
 
-# symfz_ct = SimpleSymbolicFuzzer(fun)
-# for i in range(1, 10):
-#     r = symfz_ct.fuzz()
-#     print(r)
+symfz_ct = SimpleSymbolicFuzzer(fun)
+for i in range(1, 10):
+    r = symfz_ct.fuzz()
+    print(r)
 #----------------------------------------------------------------------------------
