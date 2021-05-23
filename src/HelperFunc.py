@@ -112,3 +112,65 @@ def used_identifiers(src):
             raise Exception(str(astnode))
         return list(set(lst))
     return names(ast.parse(src))
+
+
+Function_Summaries = {}
+Function_Summaries['function_name'] = {
+    'predicate': "",
+    'vars': {}}
+
+SYM_VARS_STR = {
+    k.__name__: ("z3.%s" % v1.__name__, "z3.%s" % v2.__name__)
+    for k, (v1, v2) in SYM_VARS.items()
+}
+
+
+def translate_to_z3_name(v):
+    return SYM_VARS_STR[v][0]
+
+
+def declarations(astnode, hm=None):
+    if hm is None:
+        hm = {}
+    if isinstance(astnode, ast.Module):
+        for b in astnode.body:
+            declarations(b, hm)
+    elif isinstance(astnode, ast.FunctionDef):
+
+        for a in astnode.args.args:
+            hm[a.arg] = translate_to_z3_name(a.annotation.id)
+        for b in astnode.body:
+            declarations(b, hm)
+        # hm[astnode.name + '__return__'] = translate_to_z3_name(astnode.returns.id)
+    elif isinstance(astnode, ast.Call):
+        n = astnode.function
+        assert isinstance(n, ast.Name)
+        name = n.id
+        hm.update(dict(Function_Summaries[name]['vars']))
+    elif isinstance(astnode, ast.AnnAssign):
+        assert isinstance(astnode.target, ast.Name)
+        hm[astnode.target.id] = translate_to_z3_name(astnode.annotation.id)
+    elif isinstance(astnode, ast.Assign):
+        for t in astnode.targets:
+            assert isinstance(t, ast.Name)
+            assert t.id in hm
+    elif isinstance(astnode, ast.AugAssign):
+        assert isinstance(astnode.target, ast.Name)
+        assert astnode.target.id in hm
+    elif isinstance(astnode, (ast.If, ast.For, ast.While)):
+        for b in astnode.body:
+            declarations(b, hm)
+        for b in astnode.orelse:
+            declarations(b, hm)
+    elif isinstance(astnode, ast.Return):
+        pass
+    else:
+        raise Exception(str(astnode))
+    return hm
+
+
+def define_symbolic_vars(fn_vars, prefix):
+    sym_var_dec = ', '.join([prefix + n for n in fn_vars])
+    sym_var_def = ', '.join(["%s('%s%s')" % (t, prefix, n)
+                             for n, t in fn_vars.items()])
+    return "%s = %s" % (sym_var_dec, sym_var_def)
