@@ -10,6 +10,24 @@ class PNode:
         return "PNode:%d[%s order:%d]" % (self.idx, str(self.cfgnode), self.order)
 
 
+    def copy(self, order):
+        p = PNode(self.idx, self.cfgnode, self.parent, order, self.seen)
+        assert p.order == order
+        return p
+
+    def explore(self):
+        ret = []
+        for (i, n) in enumerate(self.cfgnode.children):
+            key = "[%d]%s" % (self.idx + 1, n)
+            ccount = self.seen.get(key, 0)
+            if ccount > self.max_iter:
+                continue  # drop this child
+            self.seen[key] = ccount + 1
+            pn = PNode(self.idx + 1, n, self.copy(i), seen=self.seen)
+            ret.append(pn)
+        return ret
+
+
     def get_path_to_root(self):
         path = []
         n = self
