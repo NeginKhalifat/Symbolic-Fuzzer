@@ -3,8 +3,9 @@ class AdvancedSymbolicFuzzer(SimpleSymbolicFuzzer):
         super().options(kwargs)
 
     def extract_constraints(self, path):
-        return [to_src(p) for p in to_single_assignment_predicates(path) if p]
-
+        res = [to_src(p) for p in to_single_assignment_predicates(path) if p]
+        print(res)
+        return res
     def solve_path_constraint(self, path):
         # re-initializing does not seem problematic.
         # a = z3.Int('a').get_id() remains the same.
