@@ -60,3 +60,13 @@ class AdvancedSymbolicFuzzer(SimpleSymbolicFuzzer):
                     completed.append(path)
             path_lst = new_paths
         return completed + path_lst
+
+    def can_be_satisfied(self, p):
+        s2 = self.extract_constraints(p.get_path_to_root())
+        s = z3.Solver()
+        identifiers = [c for i in s2 for c in used_identifiers(i)]
+        with_types = identifiers_with_types(identifiers, self.used_variables)
+        decl = define_symbolic_vars(with_types, '')
+        exec(decl)
+        exec("s.add(z3.And(%s))" % ','.join(s2), globals(), locals())
+        return s.check() == z3.sat
