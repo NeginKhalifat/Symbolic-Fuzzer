@@ -36,13 +36,6 @@ class AdvancedSymbolicFuzzer(SimpleSymbolicFuzzer):
             self.last_path = len(self.paths) - 1
         return self.paths[self.last_path]
 
-    def fuzz(self):
-        for i in range(self.max_tries):
-            res = self.solve_path_constraint(self.get_next_path())
-            if res:
-                return res
-        return {}
-
     def get_all_paths(self, fenter):
         path_lst = [PNode(0, fenter)]
         completed = []
