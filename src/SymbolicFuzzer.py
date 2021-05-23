@@ -107,6 +107,129 @@ class SimpleSymbolicFuzzer(Fuzzer):
                 return res
         return {}
 
+
+#for using in reassignments and loops
+def rename_variables(astnode, env):
+    if isinstance(astnode, ast.BoolOp):
+        fn = 'z3.And' if isinstance(astnode.op, ast.And) else 'z3.Or'
+        return ast.Call(
+            ast.Name(fn, None),
+            [rename_variables(i, env) for i in astnode.values], [])
+    elif isinstance(astnode, ast.BinOp):
+        return ast.BinOp(
+            rename_variables(astnode.left, env), astnode.op,
+            rename_variables(astnode.right, env))
+    elif isinstance(astnode, ast.UnaryOp):
+        if isinstance(astnode.op, ast.Not):
+            return ast.Call(
+                ast.Name('z3.Not', None),
+                [rename_variables(astnode.operand, env)], [])
+        else:
+            return ast.UnaryOp(astnode.op,
+                               rename_variables(astnode.operand, env))
+    elif isinstance(astnode, ast.Call):
+        return ast.Call(astnode.func,
+                        [rename_variables(i, env) for i in astnode.args],
+                        astnode.keywords)
+    elif isinstance(astnode, ast.Compare):
+        return ast.Compare(
+            rename_variables(astnode.left, env), astnode.ops,
+            [rename_variables(i, env) for i in astnode.comparators])
+    elif isinstance(astnode, ast.Name):
+        if astnode.id not in env:
+            env[astnode.id] = 0
+        num = env[astnode.id]
+        return ast.Name('_%s_%d' % (astnode.id, num), astnode.ctx)
+    elif isinstance(astnode, ast.Subscript):
+        identifier = to_src(astnode)
+        name = identifier[:-3] + '_' + identifier[-2]
+        if name not in env:
+            env[name] = 0
+        num = env[name]
+        return ast.Name('_%s_%d' % (name, num), astnode.ctx)
+    elif isinstance(astnode, ast.Return):
+        return ast.Return(rename_variables(astnode.value, env))
+    else:
+        return astnode
+
+
+def to_single_assignment_predicates(path):
+    env = {}
+    new_path = []
+    completed_path = False
+    for i, node in enumerate(path):
+        ast_node = node.cfgnode.ast_node
+        new_node = None
+        if isinstance(ast_node, ast.AnnAssign) and ast_node.target.id in {
+                'exit'}:
+            completed_path = True
+            new_node = None
+        elif isinstance(ast_node, ast.AnnAssign) and ast_node.target.id in {'enter'}:
+            args = [
+                ast.parse(
+                    "%s == _%s_0" %
+                    (a.id, a.id)).body[0].value for a in ast_node.annotation.args]
+            new_node = ast.Call(ast.Name('z3.And', None), args, [])
+        elif isinstance(ast_node, ast.AnnAssign) and ast_node.target.id in {'_if', '_while'}:
+            new_node = rename_variables(ast_node.annotation, env)
+            if node.order != 0:
+                # assert node.order == 1
+                if node.order != 1:
+                    return [], False
+                new_node = ast.Call(ast.Name('z3.Not', None), [new_node], [])
+        elif isinstance(ast_node, ast.AnnAssign):
+            if isinstance(ast_node.value, ast.List):
+                for idx, element in enumerate(ast_node.value.elts):
+                    assigned = ast_node.target.id + "_" + str(idx)
+                    val = [rename_variables(element, env)]
+                    env[assigned] = 0
+                    target = ast.Name('_%s_%d' % (assigned, env[assigned]), None)
+                    new_path.append(ast.Expr(ast.Compare(target, [ast.Eq()], val)))
+                pass
+            else:
+                assigned = ast_node.target.id
+                val = [rename_variables(ast_node.value, env)]
+                env[assigned] = 0 if assigned not in env else env[assigned] + 1
+                target = ast.Name('_%s_%d' % (assigned, env[assigned]), None)
+                new_node = ast.Expr(ast.Compare(target, [ast.Eq()], val))
+        elif isinstance(ast_node, ast.Assign):
+            if isinstance(ast_node.targets[0], ast.Subscript):
+                identifier = to_src(ast_node.targets[0])
+                assigned = identifier[:-3] + '_' + identifier[-2]
+                val = [rename_variables(ast_node.value, env)]
+                env[assigned] = 0 if assigned not in env else env[assigned] + 1
+                target = ast.Name('_%s_%d' % (assigned, env[assigned]), None)
+            else:
+                assigned = ast_node.targets[0].id
+                val = [rename_variables(ast_node.value, env)]
+                env[assigned] = 0 if assigned not in env else env[assigned] + 1
+                target = ast.Name('_%s_%d' % (assigned, env[assigned]), None)
+            new_node = ast.Expr(ast.Compare(target, [ast.Eq()], val))
+        elif isinstance(ast_node, (ast.Return, ast.Pass)):
+            new_node = None
+        else:
+            continue
+            # s = "NI %s %s" % (type(ast_node), ast_node.target.id)
+            # raise Exception(s)
+        new_path.append(new_node)
+    return new_path, completed_path
+
+
+def identifiers_with_types(identifiers, defined):
+    with_types = dict(defined)
+    for i in identifiers:
+        if i[0] == '_':
+            if i.count('_') > 2:
+                last = i.rfind('_')
+                name = i[1:last]
+            else:
+                nxt = i[1:].find('_', 1)
+                name = i[1:nxt + 1]
+            assert name in defined
+            typ = defined[name]
+            with_types[i] = typ
+    return with_types
+  
 #---------------------------------------------------------------------------------
 # test class SimpleSympolicFuzzer
 def fun(a: int,b: int,c: int):
