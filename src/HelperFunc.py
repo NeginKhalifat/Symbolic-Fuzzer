@@ -174,3 +174,21 @@ def define_symbolic_vars(fn_vars, prefix):
     sym_var_def = ', '.join(["%s('%s%s')" % (t, prefix, n)
                              for n, t in fn_vars.items()])
     return "%s = %s" % (sym_var_dec, sym_var_def)
+
+def used_vars(fn):
+    return declarations(ast.parse(inspect.getsource(fn)))
+
+def gen_fn_summary(prefix, fn):
+    summary = Function_Summaries[fn.__name__]['predicate']
+    fn_vars = Function_Summaries[fn.__name__]['vars']
+    decl = define_symbolic_vars(fn_vars, prefix)
+    summary_ast = get_expression(summary)
+    return decl, to_src(prefix_vars(summary_ast, prefix))
+
+@contextmanager
+def checkpoint(z3solver):
+    z3solver.push()
+    yield z3solver
+    z3solver.pop()
+
+
