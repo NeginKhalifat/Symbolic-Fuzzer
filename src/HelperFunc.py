@@ -61,3 +61,54 @@ def prefix_vars(astnode, prefix):
         return ast.Return(prefix_vars(astnode.value, env))
     else:
         return astnode
+
+
+
+def z3_names_and_types(z3_ast):
+    hm = {}
+    children = z3_ast.children()
+    if children:
+        for c in children:
+            hm.update(z3_names_and_types(c))
+    else:
+        if (str(z3_ast.decl()) != str(z3_ast.sort())):
+            hm["%s" % str(z3_ast.decl())] = 'z3.%s' % str(z3_ast.sort())
+        else:
+            pass
+    return hm
+
+def used_identifiers(src):
+    def names(astnode):
+        lst = []
+        if isinstance(astnode, ast.BoolOp):
+            for i in astnode.values:
+                lst.extend(names(i))
+        elif isinstance(astnode, ast.BinOp):
+            lst.extend(names(astnode.left))
+            lst.extend(names(astnode.right))
+        elif isinstance(astnode, ast.UnaryOp):
+            lst.extend(names(astnode.operand))
+        elif isinstance(astnode, ast.Call):
+            for i in astnode.args:
+                lst.extend(names(i))
+        elif isinstance(astnode, ast.Compare):
+            lst.extend(names(astnode.left))
+            for i in astnode.comparators:
+                lst.extend(names(i))
+        elif isinstance(astnode, ast.Name):
+            lst.append(astnode.id)
+        elif isinstance(astnode, ast.Expr):
+            lst.extend(names(astnode.value))
+        elif isinstance(astnode, (ast.Num, ast.Str, ast.Tuple, ast.NameConstant)):
+            pass
+        elif isinstance(astnode, ast.Assign):
+            for t in astnode.targets:
+                lst.extend(names(t))
+            lst.extend(names(astnode.value))
+        elif isinstance(astnode, ast.Module):
+            for b in astnode.body:
+                lst.extend(names(b))
+        else:
+            raise Exception(str(astnode))
+        return list(set(lst))
+    return names(ast.parse(src))
