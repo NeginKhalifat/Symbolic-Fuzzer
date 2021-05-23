@@ -29,3 +29,34 @@ class AdvancedSymbolicFuzzer(SimpleSymbolicFuzzer):
             ["%s == %s" % (k, v) for k, v in my_args.items()])
         eval('self.z3.add(z3.Not(%s))' % predicate)
         return my_args
+
+    def get_next_path(self):
+        self.last_path -= 1
+        if self.last_path == -1:
+            self.last_path = len(self.paths) - 1
+        return self.paths[self.last_path]
+
+    def fuzz(self):
+        for i in range(self.max_tries):
+            res = self.solve_path_constraint(self.get_next_path())
+            if res:
+                return res
+        return {}
+
+    def get_all_paths(self, fenter):
+        path_lst = [PNode(0, fenter)]
+        completed = []
+        for i in range(self.max_iter):
+            new_paths = [PNode(0, fenter)]
+            for path in path_lst:
+                # explore each path once
+                if path.cfgnode.children:
+                    np = path.explore()
+                    for p in np:
+                        if path.idx > self.max_depth:
+                            break
+                        new_paths.append(p)
+                else:
+                    completed.append(path)
+            path_lst = new_paths
+        return completed + path_lst
