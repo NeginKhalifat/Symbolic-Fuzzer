@@ -1,8 +1,20 @@
 import argparse
 
+import astor
+from fuzzingbook.ControlFlow import PyCFG
+
 
 def main(args):
-    pass
+    global MAX_DEPTH
+    MAX_DEPTH = args.depth
+
+    results = []
+    astree = astor.parse_file(args.input)
+    py_cfg = PyCFG()
+    function_names, function_CFGs = create_CFG(py_cfg, astree)
+
+    for i in range(len(function_names)):
+        print("###################################" + function_names[i] + "###################################")
 
 
 if __name__ == "__main__":
