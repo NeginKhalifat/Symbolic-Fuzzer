@@ -8,17 +8,25 @@ from graphviz import Source, Graph
 from fuzzingbook.Fuzzer import Fuzzer
 from contextlib import contextmanager
 
-from HelperFunc import used_vars, to_src, define_symbolic_vars, checkpoint
-from HelperFunc import MAX_DEPTH, MAX_TRIES, MAX_ITER
+from HelperFunc import declarations, to_src, define_symbolic_vars, checkpoint
+
+MAX_ITER = 100
+MAX_TRIES = 100
+MAX_DEPTH = 100
 
 class SimpleSymbolicFuzzer(Fuzzer):
-    def __init__(self, fn, **kwargs):
-        self.fn_name = fn.__name__
-        py_cfg = PyCFG()
-        py_cfg.gen_cfg(inspect.getsource(fn))
-        self.fnenter, self.fnexit = py_cfg.functions[self.fn_name]
-        self.used_variables = used_vars(fn)
-        self.fn_args = list(inspect.signature(fn).parameters)
+    def __init__(self, func_name , src_code, py_cfg, **kwargs):
+        self.fn_name = func_name
+
+        self.py_cfg = py_cfg
+        self.fnenter, self.fnexit = self.py_cfg.functions[self.fn_name]
+
+        # dictionary of used variables
+        self.used_variables = declarations(ast.parse(src_code))
+
+        # list of arguments
+        self.fn_args = list(self.used_variables.keys())
+
         self.z3 = z3.Solver()
 
         self.paths = None
@@ -232,22 +240,22 @@ def identifiers_with_types(identifiers, defined):
   
 #---------------------------------------------------------------------------------
 # test class SimpleSympolicFuzzer
-def fun(a: int,b: int,c: int):
-    x: int = 0
-    y: int = 0
-    z: int = 0
-    if (a >= 0):
-        return -2
+# def fun(a: int,b: int,c: int):
+#     x: int = 0
+#     y: int = 0
+#     z: int = 0
+#     if (a >= 0):
+#         return -2
     
-    if (b < 5):
-        if (a <= 0):
-            if( c < 7):
-                return 1
-        return 2
-    return x + y + z
+#     if (b < 5):
+#         if (a <= 0):
+#             if( c < 7):
+#                 return 1
+#         return 2
+#     return x + y + z
 
-symfz_ct = SimpleSymbolicFuzzer(fun)
-for i in range(1, 10):
-    r = symfz_ct.fuzz()
-    print(r)
+# symfz_ct = SimpleSymbolicFuzzer(fun)
+# for i in range(1, 10):
+#     r = symfz_ct.fuzz()
+#     print(r)
 #----------------------------------------------------------------------------------
