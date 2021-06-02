@@ -8,11 +8,8 @@ from graphviz import Source, Graph
 from fuzzingbook.Fuzzer import Fuzzer
 from contextlib import contextmanager
 
-from HelperFunc import declarations, to_src, define_symbolic_vars, checkpoint
+from HelperFunc import declarations, to_src, define_symbolic_vars, checkpoint, MAX_DEPTH, MAX_TRIES, MAX_ITER
 
-MAX_ITER = 100
-MAX_TRIES = 100
-MAX_DEPTH = 100
 
 class SimpleSymbolicFuzzer(Fuzzer):
     def __init__(self, func_name , src_code, py_cfg, **kwargs):

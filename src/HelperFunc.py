@@ -9,6 +9,10 @@ from fuzzingbook.Fuzzer import Fuzzer
 from contextlib import contextmanager
 
 
+MAX_ITER = 100
+MAX_TRIES = 100
+MAX_DEPTH = 100
+
 def show_cfg(fn, **kwargs):
     return Source(to_graph(gen_cfg(inspect.getsource(fn)), **kwargs))
 

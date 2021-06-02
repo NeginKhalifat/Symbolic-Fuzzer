@@ -1,6 +1,6 @@
-from src.HelperFunc import to_src
-from src.SymbolicFuzzer import to_single_assignment_predicates
-from src.HelperFunc import MAX_ITER
+from HelperFunc import to_src
+from SymbolicFuzzer import to_single_assignment_predicates
+from HelperFunc import MAX_ITER
 
 
 class PNode:

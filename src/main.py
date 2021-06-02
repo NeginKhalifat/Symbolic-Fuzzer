@@ -4,9 +4,8 @@ import astor
 from fuzzingbook.ControlFlow import PyCFG
 from advancedfuzzer import AdvancedSymbolicFuzzer
 
-MAX_ITER = 100
-MAX_TRIES = 100
-MAX_DEPTH = 100
+from HelperFunc import MAX_DEPTH, MAX_TRIES, MAX_ITER
+
 
 def main(args):
     global MAX_DEPTH
