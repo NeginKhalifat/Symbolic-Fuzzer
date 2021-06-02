@@ -29,6 +29,20 @@ def create_CFG(py_cfg, astree):
             function_CFGs[node.name] = py_cfg.gen_cfg(astor.to_source(node))
     return function_names, function_CFGs
 
+def assign_value_to_argument(call_function_with_constant, constraint):
+    constraint_args = constraint[0]
+    if 'z3.And(' in constraint_args:
+        args = constraint_args.split('(')[1].split(')')[0].split(',')
+        if len(args) != len(call_function_with_constant):
+            return constraint
+        for i, (x, y) in enumerate(zip(args, call_function_with_constant)):
+            if y != 'None':
+                new_var = x.split('==')[-1].strip()
+                if is_constant_assigned(constraint):
+                    continue
+                temp = new_var + ' == ' + str(y)
+                constraint.insert(1, temp)
+    return constraint
 
 def analyze(func_name, src_code, py_CFG, function_names, call_function_with_constant=[]):
     advanced_fuzzer = AdvancedSymbolicFuzzer(func_name, src_code, py_CFG)
