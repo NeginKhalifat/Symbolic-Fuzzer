@@ -1,5 +1,7 @@
 import argparse
 import ast
+import platform
+
 import astor
 from fuzzingbook.ControlFlow import PyCFG
 from advancedfuzzer import AdvancedSymbolicFuzzer
@@ -149,6 +151,80 @@ def seperate_function_call_constraints(constraints, function_names):
         primary_constraints.pop(i)
     return primary_constraints, function_with_constant
 
+
+def report(results, input):
+
+    if platform.system() == "Windows":
+        filename = input.split('\\')[-1]
+        filename = filename[:-3] + '_report.txt'
+    else:
+        filename = input.split('/')[-1]
+        filename = filename[:-3] + '_report.txt'
+    with open(filename, 'w+') as f:
+        f.write('***************************************** ALL PATH CONSTRAINTS **********************************\n')
+        for result in results:
+            for fn_name in result:
+                if result[fn_name]:
+                    f.write('***************************************** FUNC NAME: ' + fn_name + ' *************************************\n')
+                    i = 1
+                    for elements in result[fn_name]:
+                        if 'constraint' in elements:
+                            f.write('\t' + str(i) + ': ' + str(elements['constraint']) + '\n')
+                            i += 1
+                    f.write('*************************************************************************************************\n\n')
+
+    with open(filename, 'a+') as f:
+        f.write('*************************************************************************************************\n')
+        f.write('********************* UNSATISFIED PATH *********************\n')
+        f.write('*************************************************************************************************\n\n')
+        for result in results:
+            for fn_name in result:
+                if result[fn_name]:
+                    f.write('\n****************** FUNCTION NAME: ' + fn_name +  ' ******************\n')
+                    for elements in result[fn_name]:
+                        if 'unsat_core' in elements:
+                            f.write("\n******************##### UNSAT PATH FOUND #####******************\n")
+                            if 'constant' in elements:
+                                f.write('------ constraint values: \n')
+                                f.write('Variables: ' + ', '.join(elements['constant'])+ '\n')
+                            break_point = 0
+                            f.write('------ constraint path: \n')
+                            for s in elements['constraint']:
+                                f.write('\t' + s + '\n')
+                            f.write('------ unsat core: \n')
+                            for s in elements['unsat_core']:
+                                f.write(s + '\n')
+                                break_point += 1
+                            count = 0
+                            f.write('------ statement: \n')
+                            for s in elements['statement']:
+                                if count >= break_point:
+                                    break
+                                count += 1
+                                f.write(s + '\n')
+                            f.write('*************************************************************************************************\n\n')
+                    f.write('\n' + '#' * (len(fn_name)+48) +  '\n')
+
+    with open(filename, 'a+') as f:
+        f.write('*************************************************************************************************\n')
+        f.write('****************** SATISFIED PATH ******************\n')
+        f.write('*************************************************************************************************\n\n')
+        for result in results:
+            for fn_name in result:
+                if result[fn_name]:
+                    f.write('\n****************** FUNCTION NAME: ' + fn_name +  ' ******************\n')
+                    for elements in result[fn_name]:
+                        if 'unsat_core' not in elements:
+                            for e_key in elements:
+                                if e_key == 'constraint':
+                                    f.write('****************** CONSTRAINT PATH ******************\n')
+                                    for s in elements['constraint']:
+                                        f.write(s + '\n')
+                                    f.write('******************************************************\n\n')
+                                else:
+                                    f.write( str(e_key) + ": " + str(elements[e_key]) + '\n')
+
+                    f.write('\n' + '#' * (len(fn_name)+48) +  '\n')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Argument parser')
