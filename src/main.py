@@ -83,6 +83,47 @@ def analyze(func_name, src_code, py_CFG, function_names, call_function_with_cons
     results += call_sub_function(functions_with_constant, src_code, function_names, py_CFG)
     return results
 
+def seperate_function_call_constraints(constraints, function_names):
+    primary_constraints = constraints
+    index_of_function_call = []
+    function_with_args = {}
+    function_with_constant = {}
+    for i, constraint in enumerate(constraints):
+        temp = constraint.split('(')
+        for j, function_call in enumerate(temp):
+            if function_call in function_names:
+                arguments = temp[j + 1]
+                arguments = arguments.replace(')', '').split(',')
+                function_name_with_index = function_call + '__' + str(i)
+                function_with_args[function_name_with_index] = arguments + [str(i)]
+                index_of_function_call.append(i)
+
+    for function_name_with_index in function_with_args:
+        function_with_constant[function_name_with_index] = []
+        arguments = function_with_args[function_name_with_index][:-1]
+        location = function_with_args[function_name_with_index][-1]
+        for variable in arguments:
+            variable = variable.strip()
+            constant = None
+            for i, constraint in enumerate(constraints):
+                if i > int(location):
+                    break
+                if variable in constraint and ' == ' in constraint and ',' not in constraint:
+                    value = constraint.split(' == ')[-1].strip()
+                    if is_number(value):
+                        constant = value
+            if not constant:
+                function_with_constant[function_name_with_index].append('None')
+            else:
+                function_with_constant[function_name_with_index].append(constant)
+
+    for function_name_with_index in function_with_constant.copy():
+        if all(v == 'None' for v in function_with_constant[function_name_with_index]):
+            del function_with_constant[function_name_with_index]
+
+    for i in reversed(sorted(index_of_function_call)):
+        primary_constraints.pop(i)
+    return primary_constraints, function_with_constant
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Argument parser')
 
