@@ -20,6 +20,7 @@ def main(args):
         print("###################################" + function_names[i] + "###################################")
         results += analyze(function_names[i], src_code, py_cfg, function_names)
 
+
 def create_CFG(py_cfg, astree):
     function_names = []
     function_CFGs = {}
@@ -37,6 +38,7 @@ def is_constant_assigned(constraint):
                 return True
     return False
 
+
 def assign_value_to_argument(call_function_with_constant, constraint):
     constraint_args = constraint[0]
     if 'z3.And(' in constraint_args:
@@ -51,6 +53,19 @@ def assign_value_to_argument(call_function_with_constant, constraint):
                 temp = new_var + ' == ' + str(y)
                 constraint.insert(1, temp)
     return constraint
+
+
+def call_sub_function(functions_with_constant, src_code, function_names, py_cfg):
+    results = []
+    for function_name_with_index in functions_with_constant:
+        func_name = function_name_with_index.split('__')[0]
+        arg_values = functions_with_constant[function_name_with_index]
+        for i, func in enumerate(function_names):
+            if func == func_name:
+                results += analyze(function_names[i], src_code, py_cfg, function_names,
+                                   call_function_with_constant=arg_values)
+    return results
+
 
 def analyze(func_name, src_code, py_CFG, function_names, call_function_with_constant=[]):
     advanced_fuzzer = AdvancedSymbolicFuzzer(func_name, src_code, py_CFG)
@@ -133,6 +148,8 @@ def seperate_function_call_constraints(constraints, function_names):
     for i in reversed(sorted(index_of_function_call)):
         primary_constraints.pop(i)
     return primary_constraints, function_with_constant
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Argument parser')
 
