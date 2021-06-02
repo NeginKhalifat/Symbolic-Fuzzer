@@ -83,6 +83,15 @@ def analyze(func_name, src_code, py_CFG, function_names, call_function_with_cons
     results += call_sub_function(functions_with_constant, src_code, function_names, py_CFG)
     return results
 
+
+def is_number(string):
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
+
+
 def seperate_function_call_constraints(constraints, function_names):
     primary_constraints = constraints
     index_of_function_call = []
