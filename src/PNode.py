@@ -1,3 +1,7 @@
+from src.HelperFunc import to_src
+from src.SymbolicFuzzer import to_single_assignment_predicates
+from src.HelperFunc import MAX_ITER
+
 
 class PNode:
 
@@ -8,7 +12,6 @@ class PNode:
 
     def __repr__(self):
         return "PNode:%d[%s order:%d]" % (self.idx, str(self.cfgnode), self.order)
-
 
     def copy(self, order):
         p = PNode(self.idx, self.cfgnode, self.parent, order, self.seen)
@@ -27,7 +30,6 @@ class PNode:
             ret.append(pn)
         return ret
 
-
     def get_path_to_root(self):
         path = []
         n = self
@@ -41,4 +43,3 @@ class PNode:
         path = self.get_path_to_root()
         ssa_path = to_single_assignment_predicates(path)
         return ', '.join([to_src(p) for p in ssa_path])
-
