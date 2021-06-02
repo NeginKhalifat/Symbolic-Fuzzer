@@ -13,5 +13,5 @@ $ pip install -r requirements.txt
 ## to Run: 
 in windows:
 ```
-$ python src\main.py -i Examples\simpleIfElse.py –d 10
+$ python3 src\main.py -i Examples\simpleIfElse.py –d 10
 ```
