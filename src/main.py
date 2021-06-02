@@ -160,7 +160,7 @@ def report(results, input):
         filename = 'reports\\' + filename[:-3] + '_report.txt'
     else:
         filename = input.split('/')[-1]
-        filename = 'reports\\' + filename[:-3] + '_report.txt'
+        filename = 'reports/' + filename[:-3] + '_report.txt'
     with open(filename, 'w+') as f:
         f.write('***************************************** ALL PATH CONSTRAINTS **********************************\n')
         for result in results:
