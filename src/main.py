@@ -19,7 +19,7 @@ def main(args):
     function_names, function_CFGs = create_CFG(py_cfg, astree)
 
     for i in range(len(function_names)):
-        print("###################################" + function_names[i] + "###################################")
+        # print("###################################" + function_names[i] + "###################################")
         results += analyze(function_names[i], src_code, py_cfg, function_names)
     report(results, args.input)
 
@@ -157,10 +157,10 @@ def report(results, input):
 
     if platform.system() == "Windows":
         filename = input.split('\\')[-1]
-        filename = filename[:-3] + '_report.txt'
+        filename = 'reports\\' + filename[:-3] + '_report.txt'
     else:
         filename = input.split('/')[-1]
-        filename = filename[:-3] + '_report.txt'
+        filename = 'reports\\' + filename[:-3] + '_report.txt'
     with open(filename, 'w+') as f:
         f.write('***************************************** ALL PATH CONSTRAINTS **********************************\n')
         for result in results:
