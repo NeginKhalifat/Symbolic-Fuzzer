@@ -21,6 +21,7 @@ def main(args):
     for i in range(len(function_names)):
         print("###################################" + function_names[i] + "###################################")
         results += analyze(function_names[i], src_code, py_cfg, function_names)
+    report(results, args.input)
 
 
 def create_CFG(py_cfg, astree):

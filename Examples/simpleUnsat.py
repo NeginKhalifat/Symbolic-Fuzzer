@@ -1,9 +1,7 @@
 
 def func_a(a: int):
-    for i in range(5):
-        a += 2
     a = 11
-    if a > 10:
+    if a % 10 == 0:
         return True
     else:
         return False
