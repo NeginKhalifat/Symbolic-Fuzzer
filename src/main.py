@@ -29,6 +29,14 @@ def create_CFG(py_cfg, astree):
             function_CFGs[node.name] = py_cfg.gen_cfg(astor.to_source(node))
     return function_names, function_CFGs
 
+
+def is_constant_assigned(constraint):
+    for cons in constraint:
+        if ' == ' in cons:
+            if is_number(cons.split(' == ')[-1]):
+                return True
+    return False
+
 def assign_value_to_argument(call_function_with_constant, constraint):
     constraint_args = constraint[0]
     if 'z3.And(' in constraint_args:
