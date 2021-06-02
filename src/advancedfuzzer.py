@@ -77,3 +77,46 @@ class AdvancedSymbolicFuzzer(SimpleSymbolicFuzzer):
         exec(decl)
         exec("s.add(z3.And(%s))" % ','.join(s2), globals(), locals())
         return s.check() == z3.sat
+
+    def solve_constraint(self, constraints, pNodeList):
+        identifiers = [c for i in constraints for c in used_identifiers(i)]
+        with_types = identifiers_with_types(identifiers, self.used_variables)
+        decl = define_symbolic_vars(with_types, '')
+        exec(decl)
+        with checkpoint(self.z3):
+            unsat_result = {}
+            unsat_result['constraint'] = []
+            unsat_result['unsat_core'] = []
+            unsat_result['statement'] = []
+            unsat_result['path'] = [constraints]
+            unsat_path = {}
+
+            i = 0
+            for cons in constraints:
+                unsat_result['constraint'].append(str(cons))
+                assert_constraint = 'self.z3.assert_and_track(%s,"p%s")' % (cons, str(i))
+                i = i + 1
+                path_name = 'p' + str(i)
+                unsat_path[z3.Bool(path_name)] = cons
+                eval(assert_constraint)
+            if self.z3.check() != z3.sat:
+                unsat_core = self.z3.unsat_core()
+                unsat_result['unsat_core'].append("Unsat core: ")
+                for i in range(len(unsat_core)):
+                    if unsat_core[i] not in unsat_path:
+                        continue
+                    unsat_result['unsat_core'].append("\t" + str(unsat_path[unsat_core[i]]))
+                unsat_result['statement'].append("Unsat path statements: ")
+                for node in pNodeList:
+                    cfg = node.cfgnode.to_json()
+                    at = cfg['at']
+                    ast = cfg['ast']
+                    unsat_result['statement'].append("\t#line " + str(at) + ": " + str(ast))
+                return unsat_result, True
+            test_case = self.z3.model()
+            solutions = {x.name(): test_case[x] for x in test_case.decls()}
+            arguments = {y: solutions.get(y, None) for y in self.fn_args}
+        predicate = 'z3.And(%s)' % ','.join(["%s == %s" % (x, y) for x, y in arguments.items() if y is not None])
+        eval('self.z3.add(z3.Not(%s))' % predicate)
+        return arguments, False
+
