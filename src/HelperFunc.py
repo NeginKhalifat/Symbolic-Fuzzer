@@ -140,12 +140,10 @@ def declarations(astnode, hm=None):
         for b in astnode.body:
             declarations(b, hm)
     elif isinstance(astnode, ast.FunctionDef):
-
         for a in astnode.args.args:
             hm[a.arg] = translate_to_z3_name(a.annotation.id)
         for b in astnode.body:
             declarations(b, hm)
-        # hm[astnode.name + '__return__'] = translate_to_z3_name(astnode.returns.id)
     elif isinstance(astnode, ast.Call):
         n = astnode.function
         assert isinstance(n, ast.Name)
@@ -153,11 +151,21 @@ def declarations(astnode, hm=None):
         hm.update(dict(Function_Summaries[name]['vars']))
     elif isinstance(astnode, ast.AnnAssign):
         assert isinstance(astnode.target, ast.Name)
-        hm[astnode.target.id] = translate_to_z3_name(astnode.annotation.id)
+        if isinstance(astnode.value, ast.List):
+            if isinstance(astnode.value.elts[0], ast.Num):
+                element_type = type(astnode.value.elts[0].n)
+            else:
+                element_type = type(astnode.value.elts[0].s)
+            list_name = astnode.target.id
+            for i in range(0, len(astnode.value.elts)):
+                hm["%s_%d" % (list_name, i)] = translate_to_z3_name(element_type.__name__)
+        else:
+            hm[astnode.target.id] = translate_to_z3_name(astnode.annotation.id)
     elif isinstance(astnode, ast.Assign):
-        for t in astnode.targets:
-            assert isinstance(t, ast.Name)
-            assert t.id in hm
+        if not isinstance(astnode.targets[0], ast.Subscript):
+            for t in astnode.targets:
+                assert isinstance(t, ast.Name)
+                assert t.id in hm
     elif isinstance(astnode, ast.AugAssign):
         assert isinstance(astnode.target, ast.Name)
         assert astnode.target.id in hm
@@ -169,8 +177,9 @@ def declarations(astnode, hm=None):
     elif isinstance(astnode, ast.Return):
         pass
     else:
-        raise Exception(str(astnode))
+        return {}
     return hm
+
 
 
 def define_symbolic_vars(fn_vars, prefix):
@@ -194,5 +203,4 @@ def checkpoint(z3solver):
     z3solver.push()
     yield z3solver
     z3solver.pop()
-
 
