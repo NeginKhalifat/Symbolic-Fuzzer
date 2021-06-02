@@ -4,12 +4,11 @@ import astor
 from fuzzingbook.ControlFlow import PyCFG
 from advancedfuzzer import AdvancedSymbolicFuzzer
 
-from HelperFunc import MAX_DEPTH, MAX_TRIES, MAX_ITER
+import HelperFunc
 
 
 def main(args):
-    global MAX_DEPTH
-    MAX_DEPTH = args.depth
+    HelperFunc.MAX_DEPTH = args.depth
 
     results = []
     astree = astor.parse_file(args.input)
@@ -19,7 +18,7 @@ def main(args):
 
     for i in range(len(function_names)):
         print("###################################" + function_names[i] + "###################################")
-        results += analyze(function_names[i], src_code, py_cfg)
+        results += analyze(function_names[i], src_code, py_cfg, function_names)
 
 def create_CFG(py_cfg, astree):
     function_names = []
@@ -30,24 +29,36 @@ def create_CFG(py_cfg, astree):
             function_CFGs[node.name] = py_cfg.gen_cfg(astor.to_source(node))
     return function_names, function_CFGs
 
-def analyze(func_name, src_code, py_CFG):
-    results = []
-    single_result = {}
 
+def analyze(func_name, src_code, py_CFG, function_names, call_function_with_constant=[]):
     advanced_fuzzer = AdvancedSymbolicFuzzer(func_name, src_code, py_CFG)
     paths = advanced_fuzzer.get_all_paths(advanced_fuzzer.fnenter)
-
-    count_path = 0
+    report = {}
+    report[func_name] = []
+    functions_with_constant = {}
+    results = []
     used_constraint = []
-
+    path_count = 0
     for i in range(len(paths)):
         constraint = advanced_fuzzer.extract_constraints(paths[i].get_path_to_root())
         concat_constraint = '__'.join(constraint)
         if concat_constraint in used_constraint or len(constraint) <= 1:
             continue
+        path_count += 1
         used_constraint.append(concat_constraint)
-        # print(used_constraint)
-    
+        constraint, constant_for_sub_function = seperate_function_call_constraints(constraint, function_names)
+        if call_function_with_constant:
+            constraint = assign_value_to_argument(call_function_with_constant, constraint)
+
+        functions_with_constant.update(constant_for_sub_function)
+        test_case, is_unsat = advanced_fuzzer.solve_constraint(constraint, paths[i].get_path_to_root())
+        test_case['constraint'] = constraint
+        if call_function_with_constant:
+            test_case['constant'] = call_function_with_constant
+        report[func_name].append(test_case)
+    results.append(report)
+
+    results += call_sub_function(functions_with_constant, src_code, function_names, py_CFG)
     return results
 
 if __name__ == "__main__":
