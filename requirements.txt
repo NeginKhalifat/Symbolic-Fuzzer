@@ -4,6 +4,6 @@ coverage==5.5
 decorator==4.4.2
 fuzzingbook==0.8.1
 graphviz==0.16
-networkx==2.5.1
+networkx==3.6.1
 z3==0.2.0
 z3-solver==4.8.10.0
