@@ -1,6 +1,6 @@
 astor==0.8.1
 boto==2.49.0
-coverage==5.5
+coverage==7.16.0
 decorator==4.4.2
 fuzzingbook==0.8.1
 graphviz==0.16
